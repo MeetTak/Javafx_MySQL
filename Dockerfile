@@ -1,57 +1,29 @@
-## Stage 1: Build the application
-#FROM maven:3.9.9-eclipse-temurin-21 AS build
-#
-#WORKDIR /app
-#
-## Copy the Maven wrapper and pom.xml
-#COPY .mvn/ .mvn
-#COPY mvnw pom.xml ./
-#
-## Ensure the Maven wrapper script is executable
-#RUN chmod +x mvnw
-#
-## Download dependencies
-#RUN ./mvnw dependency:go-offline -B
-#
-## Copy the source code
-#COPY src ./src
-#
-## Package the application
-#RUN ./mvnw package -DskipTests -B && \
-#    cp target/*.jar target/app.jar
-#
-## Stage 2: Create the final runtime image
-#FROM eclipse-temurin:21-jre-jammy AS runtime
-#
-#WORKDIR /app
-#
-## Copy the JAR file from the build stage
-#COPY --from=build /app/target/app.jar app.jar
-#
-## Expose the application port
-#EXPOSE 8080
-#
-## Define the command to run the application
-#ENTRYPOINT ["java", "-jar", "app.jar"]
+# Use the official Maven image as the base image
+FROM maven:3.9.4-amazoncorretto-21 AS build
 
-FROM maven:latest
-
-
-
+# Set the working directory inside the container
 WORKDIR /app
 
-
-
+# Copy the pom.xml and any other necessary files to the container
 COPY pom.xml .
 
-
-
+# Download the project dependencies
 RUN mvn dependency:go-offline
 
+# Copy the entire project to the container
+COPY . .
 
+# Build the project
+RUN mvn package -DskipTests
 
-COPY src ./src
+# Use a smaller base image for the final stage
+FROM openjdk:21-jdk-slim
 
+# Set the working directory inside the container
+WORKDIR /app
 
+# Copy the built JAR file from the build stage
+COPY --from=build /app/target/db_app-1.0-SNAPSHOT.jar .
 
-RUN mvn package
+# Set the command to run your application
+CMD ["java", "-jar", "db_app-1.0-SNAPSHOT.jar"]
