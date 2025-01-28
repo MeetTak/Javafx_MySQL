@@ -1,27 +1,20 @@
-# Use an official Maven image as the base image for the build stage
-FROM maven:3.9.4-eclipse-temurin-21-alpine AS build
+# Use the Eclipse Temurin 21 (Java 21) base image
+FROM eclipse-temurin:21-jdk
 
-# Set the working directory in the container
+# Install Maven and OpenJFX libraries (if not already included)
+RUN apt-get update && apt-get install -y \
+    maven \
+    openjfx \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
 WORKDIR /app
 
-# Copy the pom.xml file and download dependencies
-COPY pom.xml .
-RUN mvn dependency:go-offline
+# Copy your project files into the container
+COPY . /app
 
-# Copy the entire project to the working directory
-COPY . .
+# Build the application (using Maven)
+RUN mvn -f /app/pom.xml clean package -DskipTests
 
-# Build the Maven project
-RUN mvn package
-
-# Use an official OpenJDK image as the base image for the runtime
-FROM eclipse-temurin:21-jdk-jammy
-
-# Set the working directory in the container
-WORKDIR /app
-
-# Copy the built JAR file from the build stage
-COPY --from=build /app/target/*.jar app.jar
-
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the built JAR file (replace MyApp.jar with the actual final artifact name)
+CMD ["java", "-jar", "/app/target/db_app-1.0-SNAPSHOT.jar"]
